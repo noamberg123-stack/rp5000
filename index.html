@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Cyber Escape - The Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        /* ממשק המשתמש (UI) מעל ה-3D */
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-sizing: border-box;
+            pointer-events: none; /* מאפשר ללחוץ על ה-3D מאחורה */
+        }
+        .hud-element {
+            color: #00ffff;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00ffff;
+            background: rgba(0, 20, 40, 0.6);
+            padding: 10px 20px;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+        }
+        #enemy-hud {
+            color: #ff3333;
+            text-shadow: 0 0 10px #ff3333;
+            border-color: #ff3333;
+            background: rgba(40, 0, 0, 0.6);
+        }
+        #instructions {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            color: #ffffff;
+            font-size: 18px;
+            text-shadow: 0 0 5px #000;
+            pointer-events: none;
+        }
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ff3333;
+            display: none; /* מוסתר בהתחלה */
+        }
+        #game-over-screen h1 {
+            font-size: 50px;
+            text-shadow: 0 0 20px #ff0000;
+            margin-bottom: 10px;
+        }
+        #btn-restart {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 18px;
+            background: #ff3333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 0 15px #ff3333;
+            font-weight: bold;
+        }
+        #btn-restart:hover {
+            background: #ff6666;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <div id="player-hud" class="hud-element">מערכת הגנה: פעילה (לייזר כחול)</div>
+        <div id="enemy-hud" class="hud-element">מרחק האיום: <span id="distance-val">15</span> מטרים</div>
+    </div>
+
+    <div id="instructions">
+        לחץ על מקש <b style="color: #00ffff; font-size: 22px;">F</b> או על המסך כדי להפעיל פיירוול ולהדוף את הנוזקה!
+    </div>
+
+    <div id="game-over-screen">
+        <h1>SYSTEM COMPROMISED</h1>
+        <p>הקוד הזדוני חדר לחדר שלך והשתלט על המערכת.</p>
+        <button id="btn-restart" onclick="resetGame()">אתחל פרוטוקול מילוט</button>
+    </div>
+
+    <script>
+        // --- 1. הגדרות בסיסיות של ה-3D ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020205); // חלל שחור עמוק
+        scene.fog = new THREE.FogExp2(0x020205, 0.03); // אפקט ערפל מסתורי
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- 2. תאורה ---
+        const ambientLight = new THREE.AmbientLight(0x333333);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 15, 5);
+        scene.add(dirLight);
+
+        // גריד (רשת דיגיטלית) על הרצפה בשביל תחושת סייבר 3D
