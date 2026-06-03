@@ -3,85 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Cyber Escape - The Game</title>
+    <title>Cyber Escape: High-End Edition</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
+        
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #000;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #010103;
+            font-family: 'Rajdhani', sans-serif;
             user-select: none;
         }
-        /* ממשק המשתמש (UI) מעל ה-3D */
+        
+        /* UI מתקדם */
         #ui-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 70%, rgba(0, 10, 20, 0.8) 100%);
+        }
+        
+        .hud-top {
             position: absolute;
             top: 20px;
             width: 100%;
             display: flex;
             justify-content: space-between;
-            padding: 0 30px;
+            padding: 0 40px;
             box-sizing: border-box;
-            pointer-events: none; /* מאפשר ללחוץ על ה-3D מאחורה */
         }
-        .hud-element {
+
+        .hud-box {
+            padding: 10px 25px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 24px;
+            backdrop-filter: blur(5px);
+        }
+
+        #core-status {
             color: #00ffff;
-            font-size: 20px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #00ffff;
-            background: rgba(0, 20, 40, 0.6);
-            padding: 10px 20px;
-            border: 1px solid #00ffff;
-            border-radius: 5px;
+            border-left: 4px solid #00ffff;
+            background: rgba(0, 50, 50, 0.4);
+            box-shadow: -10px 0 20px rgba(0, 255, 255, 0.2);
         }
-        #enemy-hud {
-            color: #ff3333;
-            text-shadow: 0 0 10px #ff3333;
-            border-color: #ff3333;
-            background: rgba(40, 0, 0, 0.6);
+
+        #threat-level {
+            color: #ff0055;
+            border-right: 4px solid #ff0055;
+            background: rgba(50, 0, 10, 0.4);
+            box-shadow: 10px 0 20px rgba(255, 0, 85, 0.2);
         }
-        #instructions {
+
+        #action-prompt {
             position: absolute;
-            bottom: 30px;
+            bottom: 40px;
             width: 100%;
             text-align: center;
-            color: #ffffff;
-            font-size: 18px;
-            text-shadow: 0 0 5px #000;
-            pointer-events: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 20px;
+            letter-spacing: 3px;
+            animation: pulse 2s infinite;
         }
-        #game-over-screen {
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; text-shadow: 0 0 10px #fff; }
+            100% { opacity: 0.5; }
+        }
+
+        /* מסך סיום סינמטי */
+        #game-over {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(20, 0, 0, 0.85);
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: #ff3333;
-            display: none; /* מוסתר בהתחלה */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
         }
-        #game-over-screen h1 {
-            font-size: 50px;
-            text-shadow: 0 0 20px #ff0000;
-            margin-bottom: 10px;
+
+        #game-over h1 {
+            color: #ff0055;
+            font-size: 80px;
+            margin: 0;
+            text-shadow: 0 0 30px #ff0055, 0 0 60px #ff0000;
+            letter-spacing: 5px;
         }
-        #btn-restart {
-            margin-top: 20px;
-            padding: 12px 30px;
-            font-size: 18px;
-            background: #ff3333;
-            color: #fff;
-            border: none;
+
+        #restart-btn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ff0055;
+            border: 2px solid #ff0055;
             border-radius: 5px;
             cursor: pointer;
-            box-shadow: 0 0 15px #ff3333;
-            font-weight: bold;
+            transition: all 0.3s;
+            pointer-events: auto;
         }
-        #btn-restart:hover {
-            background: #ff6666;
+
+        #restart-btn:hover {
+            background: #ff0055;
+            color: #fff;
+            box-shadow: 0 0 20px #ff0055;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -89,37 +120,211 @@
 <body>
 
     <div id="ui-container">
-        <div id="player-hud" class="hud-element">מערכת הגנה: פעילה (לייזר כחול)</div>
-        <div id="enemy-hud" class="hud-element">מרחק האיום: <span id="distance-val">15</span> מטרים</div>
+        <div class="hud-top">
+            <div id="core-status" class="hud-box">SYSTEM CORE: ONLINE</div>
+            <div id="threat-level" class="hud-box">PROXIMITY: <span id="dist-val">25.0</span>M</div>
+        </div>
+        <div id="action-prompt">[ PRESS 'F' TO FIRE DEFENSE BEAM ]</div>
     </div>
 
-    <div id="instructions">
-        לחץ על מקש <b style="color: #00ffff; font-size: 22px;">F</b> או על המסך כדי להפעיל פיירוול ולהדוף את הנוזקה!
-    </div>
-
-    <div id="game-over-screen">
-        <h1>SYSTEM COMPROMISED</h1>
-        <p>הקוד הזדוני חדר לחדר שלך והשתלט על המערכת.</p>
-        <button id="btn-restart" onclick="resetGame()">אתחל פרוטוקול מילוט</button>
+    <div id="game-over">
+        <h1>BREACH DETECTED</h1>
+        <button id="restart-btn" onclick="resetGame()">REBOOT SYSTEM</button>
     </div>
 
     <script>
-        // --- 1. הגדרות בסיסיות של ה-3D ---
+        // --- 1. הגדרת סצנה מתקדמת ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020205); // חלל שחור עמוק
-        scene.fog = new THREE.FogExp2(0x020205, 0.03); // אפקט ערפל מסתורי
+        scene.fog = new THREE.FogExp2(0x010103, 0.04);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // תצוגה חדה
         document.body.appendChild(renderer.domElement);
 
-        // --- 2. תאורה ---
-        const ambientLight = new THREE.AmbientLight(0x333333);
+        // תאורה דינמית
+        const ambientLight = new THREE.AmbientLight(0x111122);
         scene.add(ambientLight);
+        
+        const coreLight = new THREE.PointLight(0x00ffff, 2, 20);
+        coreLight.position.set(0, 1, 0);
+        scene.add(coreLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(5, 15, 5);
-        scene.add(dirLight);
+        const threatLight = new THREE.PointLight(0xff0055, 3, 20);
+        scene.add(threatLight);
 
-        // גריד (רשת דיגיטלית) על הרצפה בשביל תחושת סייבר 3D
+        // --- 2. אובייקטים מתקדמים ---
+
+        // רצפת סייברפאנק (גריד זז)
+        const gridHelper = new THREE.GridHelper(100, 40, 0x00ffff, 0x002244);
+        gridHelper.position.y = -2;
+        scene.add(gridHelper);
+
+        // ליבת המערכת של השחקן (Torus Knot)
+        const coreGeo = new THREE.TorusKnotGeometry(1.5, 0.4, 100, 16);
+        const coreMat = new THREE.MeshPhongMaterial({ 
+            color: 0x00ffff, emissive: 0x004466, wireframe: true 
+        });
+        const systemCore = new THREE.Mesh(coreGeo, coreMat);
+        systemCore.position.set(0, 1, 0);
+        scene.add(systemCore);
+
+        // מגן חיצוני שקוף
+        const shieldGeo = new THREE.SphereGeometry(3, 32, 32);
+        const shieldMat = new THREE.MeshBasicMaterial({
+            color: 0x00ffff, transparent: true, opacity: 0.1, wireframe: true
+        });
+        const shield = new THREE.Mesh(shieldGeo, shieldMat);
+        systemCore.add(shield);
+
+        // הנוזקה - וירוס פוליגוני (Icosahedron)
+        const enemyGeo = new THREE.IcosahedronGeometry(1.8, 0);
+        const enemyMat = new THREE.MeshPhongMaterial({
+            color: 0xff0000, emissive: 0x660022, flatShading: true
+        });
+        const enemy = new THREE.Mesh(enemyGeo, enemyMat);
+        let startDist = 25;
+        enemy.position.set(0, 1, startDist);
+        scene.add(enemy);
+
+        // חלקיקים (אבק דיגיטלי אדום סביב האויב)
+        const particlesGeo = new THREE.BufferGeometry();
+        const particlesCount = 200;
+        const posArray = new Float32Array(particlesCount * 3);
+        for(let i=0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 8; // פיזור במרחב
+        }
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMat = new THREE.PointsMaterial({
+            size: 0.1, color: 0xff0055, transparent: true, opacity: 0.8
+        });
+        const particleSystem = new THREE.Points(particlesGeo, particlesMat);
+        scene.add(particleSystem);
+
+        // קרן לייזר חבויה
+        const laserGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
+        laserGeo.rotateX(Math.PI / 2); // סיבוב שיירה קדימה
+        const laserMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const laser = new THREE.Mesh(laserGeo, laserMat);
+        laser.position.set(0, 1, 0);
+        laser.visible = false;
+        scene.add(laser);
+
+        // --- 3. לוגיקה ואנימציה ---
+        camera.position.set(0, 4, -8);
+        camera.lookAt(0, 1, 5);
+
+        let isGameOver = false;
+        let enemySpeed = 4.0;
+        let clock = new THREE.Clock();
+        
+        // משתנים לרעידת מצלמה
+        let shakeIntensity = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+            const delta = clock.getDelta();
+
+            // אפקט תנועה - הגריד רץ אחורה
+            gridHelper.position.z = (elapsedTime * 10) % 2.5;
+
+            // סיבוב הליבה
+            systemCore.rotation.y = elapsedTime * 0.5;
+            systemCore.rotation.x = elapsedTime * 0.2;
+
+            // אנימציית האויב
+            enemy.rotation.x = elapsedTime;
+            enemy.rotation.y = elapsedTime * 1.2;
+            enemy.position.y = 1 + Math.sin(elapsedTime * 3) * 0.5; // רחף למעלה ולמטה
+            
+            // תאורת האויב זזה איתו
+            threatLight.position.copy(enemy.position);
+
+            // חלקיקים זזים עם האויב
+            particleSystem.position.copy(enemy.position);
+            particleSystem.rotation.y = elapsedTime * 0.2;
+
+            if (!isGameOver) {
+                // האויב מתקדם
+                if (enemy.position.z > 3.5) {
+                    enemy.position.z -= 0.02 * enemySpeed;
+                    document.getElementById("dist-val").innerText = enemy.position.z.toFixed(1);
+                } else {
+                    triggerGameOver();
+                }
+            }
+
+            // רעידת מצלמה (Camera Shake)
+            if (shakeIntensity > 0) {
+                camera.position.x = (Math.random() - 0.5) * shakeIntensity;
+                camera.position.y = 4 + (Math.random() - 0.5) * shakeIntensity;
+                shakeIntensity -= 0.05; // דעיכה
+            } else {
+                camera.position.x = 0;
+                camera.position.y = 4;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- 4. מערכת קרב (הדף ולייזר) ---
+        function fireLaser() {
+            if (isGameOver) return;
+
+            shakeIntensity = 0.5; // הפעלת רעידת מצלמה חזקה
+
+            // אפקט ויזואלי של הלייזר
+            laser.visible = true;
+            const distanceToEnemy = enemy.position.z;
+            laser.scale.z = distanceToEnemy; // מתיחת הלייזר עד לאויב
+            laser.position.z = distanceToEnemy / 2; // מיקום במרכז בין השחקן לאויב
+
+            // הדיפת האויב
+            enemy.position.z = Math.min(startDist, enemy.position.z + 5);
+            
+            // שינוי צבע בליבה לאפקט טעינה
+            coreMat.color.setHex(0xffffff);
+
+            // כיבוי הלייזר אחרי שבריר שנייה
+            setTimeout(() => { 
+                laser.visible = false; 
+                coreMat.color.setHex(0x00ffff);
+            }, 100);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'f' || e.key === 'כ') fireLaser();
+        });
+        window.addEventListener('click', fireLaser);
+
+        // --- 5. סיום ואיפוס ---
+        function triggerGameOver() {
+            isGameOver = true;
+            coreMat.color.setHex(0xff0000); // הליבה נפרצת ונצבעת באדום
+            coreGeo.dispose();
+            
+            document.getElementById("game-over").style.pointerEvents = "auto";
+            document.getElementById("game-over").style.opacity = "1";
+        }
+
+        window.resetGame = function() {
+            enemy.position.z = startDist;
+            coreMat.color.setHex(0x00ffff);
+            
+            document.getElementById("game-over").style.pointerEvents = "none";
+            document.getElementById("game-over").style.opacity = "0";
+            isGameOver = false;
+        };
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
